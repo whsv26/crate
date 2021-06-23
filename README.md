@@ -1,0 +1,2 @@
+# crate
+Currency rates
