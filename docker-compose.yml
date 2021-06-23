@@ -1,0 +1,18 @@
+version: '3.6'
+services:
+  postgres:
+    container_name: postgres_crate
+    image: postgres:13-alpine
+    volumes:
+      - volume_postgres:/var/lib/postgresql/data
+    ports:
+      - 54325:5432
+    environment:
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker
+      POSTGRES_DB: crate
+    # Вывод текущих sql запросов в stdout
+    command: postgres -c log_statement=all
+
+volumes:
+  volume_postgres:
