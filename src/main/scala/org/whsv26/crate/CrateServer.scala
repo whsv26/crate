@@ -2,21 +2,23 @@ package org.whsv26.crate
 
 import cats.effect.{ConcurrentEffect, Timer}
 import cats.implicits._
+import doobie.util.transactor.Transactor.Aux
 import fs2.Stream
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
+
 import scala.concurrent.ExecutionContext.global
 
 object CrateServer {
 
-  def stream[F[_]: ConcurrentEffect](implicit T: Timer[F]): Stream[F, Nothing] = {
+  def stream[F[_]: ConcurrentEffect](implicit T: Timer[F], xa: Aux[F, Unit]): Stream[F, Nothing] = {
     for {
       client <- BlazeClientBuilder[F](global).stream
       helloWorldAlg = HelloWorld.impl[F]
       jokeAlg = Jokes.impl[F](client)
-      currencyRateAlg = CurrencyRates.impl[F]/*(client)*/
+      currencyRateAlg = CurrencyRates.impl[F](xa)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
