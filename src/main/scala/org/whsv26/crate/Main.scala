@@ -3,17 +3,27 @@ package org.whsv26.crate
 import cats.effect.{ExitCode, IO, IOApp}
 import doobie.util.transactor.Transactor
 import fs2.Stream
+import org.whsv26.crate.Config.PostgresConfig
+
 import scala.concurrent.duration.DurationInt
+import pureconfig._
+import pureconfig.generic.auto._
 
 object Main extends IOApp {
+  val pgConf: PostgresConfig = ConfigSource
+    .resources("config/database.conf")
+    .load[PostgresConfig]
+    .toOption
+    .get
+
   implicit val xa: Transactor.Aux[IO, Unit] = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver",
-    "jdbc:postgresql://localhost:54325/crate",
-    "docker",
-    "docker"
+    s"jdbc:postgresql://${pgConf.host}:${pgConf.port}/${pgConf.database}",
+    pgConf.user,
+    pgConf.password
   )
 
-  def run(args: List[String]) = {
+  def run(args: List[String]): IO[ExitCode] = {
     outgoingCurrencyRateStream
       .merge(incomingCurrencyRateStream)
       .compile

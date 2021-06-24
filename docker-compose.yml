@@ -14,5 +14,12 @@ services:
     # Вывод текущих sql запросов в stdout
     command: postgres -c log_statement=all
 
+  flyway:
+    container_name: flyway_crate
+    image: flyway/flyway:7.10.0
+    volumes:
+      - ./src/main/resources/config:/flyway/conf
+      - ./src/main/resources/migrations:/flyway/sql
+
 volumes:
   volume_postgres:

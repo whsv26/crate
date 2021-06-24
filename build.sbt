@@ -4,6 +4,7 @@ val MunitVersion = "0.7.20"
 val LogbackVersion = "1.2.3"
 val MunitCatsEffectVersion = "0.13.0"
 val enumeratumCirceVersion = "1.6.1"
+val pureConfigVersion = "0.16.0"
 
 lazy val root = (project in file("."))
   .settings(
@@ -23,7 +24,8 @@ lazy val root = (project in file("."))
       "org.scalameta"   %% "svm-subs"            % "20.2.0"
     ),
     libraryDependencies ++= Seq(
-      "com.beachape" %% "enumeratum-circe" % enumeratumCirceVersion
+      "com.beachape" %% "enumeratum-circe" % enumeratumCirceVersion,
+      "com.github.pureconfig" %% "pureconfig" % pureConfigVersion
     ),
     libraryDependencies ++= Seq(
       // Start with this one
