@@ -16,9 +16,10 @@ object CrateServer {
   def stream[F[_]: ConcurrentEffect](implicit T: Timer[F], xa: Aux[F, Unit]): Stream[F, Nothing] = {
     for {
       client <- BlazeClientBuilder[F](global).stream
-      helloWorldAlg = HelloWorld.impl[F]
-      jokeAlg = Jokes.impl[F](client)
+
+      // Implementations
       currencyRateAlg = CurrencyRates.impl[F](xa)
+      currencyLayerAlg = CurrencyLayer.impl[F](client)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
@@ -27,8 +28,7 @@ object CrateServer {
       httpApp = (
         CrateRoutes.getCurrencyRateRoute[F](currencyRateAlg) <+>
         CrateRoutes.getCurrencyRatesRoute[F](currencyRateAlg) <+>
-        CrateRoutes.helloWorldRoutes[F](helloWorldAlg) <+>
-        CrateRoutes.jokeRoutes[F](jokeAlg)
+        CrateRoutes.getCurrencyLayerRatesRoute[F](currencyLayerAlg)
       ).orNotFound
 
       // With Middlewares in place

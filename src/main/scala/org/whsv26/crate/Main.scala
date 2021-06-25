@@ -4,7 +4,6 @@ import cats.effect.{ExitCode, IO, IOApp}
 import doobie.util.transactor.Transactor
 import fs2.Stream
 import org.whsv26.crate.Config.PostgresConfig
-
 import scala.concurrent.duration.DurationInt
 import pureconfig._
 import pureconfig.generic.auto._
