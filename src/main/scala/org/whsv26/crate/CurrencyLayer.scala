@@ -13,7 +13,7 @@ import org.http4s.client.dsl.Http4sClientDsl
 import java.time.Instant
 
 trait CurrencyLayer[F[_]]{
-  def getRates/*(cs: List[Currency])*/: F[List[CurrencyRates.CurrencyRate]]
+  def getRates(cs: Seq[Currency]): F[List[CurrencyRates.CurrencyRate]]
 }
 
 object CurrencyLayer {
@@ -36,21 +36,27 @@ object CurrencyLayer {
   }
 
   def impl[F[_]: Sync](C: Client[F]): CurrencyLayer[F] = new CurrencyLayer[F] {
-    def getRates/*(cs: List[Currency])*/: F[List[CurrencyRates.CurrencyRate]] = {
+    def getRates(cs: Seq[Currency]): F[List[CurrencyRates.CurrencyRate]] = {
       val dsl = new Http4sClientDsl[F]{}
       import dsl._
 
       // TODO Drop mock server
-      val uri = uri"https://14c373a2-f86b-49a6-ae99-fe4a4dcecc23.mock.pstmn.io/api/live?access_key=&source=USD&format=1&currencies=RON,HUF"
+      val baseUri = uri"https://14c373a2-f86b-49a6-ae99-fe4a4dcecc23.mock.pstmn.io" / "api" / "live"
+      val uri = baseUri.withQueryParams(Map(
+        "access_key" -> "",
+        "source" -> "USD",
+        "format" -> "1",
+        "currencies" -> cs.foldLeft("")(_ + "," + _)
+      ))
 
       C.expect[CurrencyLayerResponse](GET(uri))
         .adaptError { case e => CurrencyLayerResponseError(e) }
         .map(rsp => {
           val quotes = rsp.quotes map { case (c, r) => (c.replace(rsp.source, ""), r) }
           quotes.toList map {
-            case (c, r) => CurrencyRates.CurrencyRate(
-              Currency.withName(c),
-              r,
+            case (currency, rate) => CurrencyRates.CurrencyRate(
+              Currency.withName(currency),
+              rate,
               Instant.ofEpochSecond(rsp.timestamp).toString
             )
           }
