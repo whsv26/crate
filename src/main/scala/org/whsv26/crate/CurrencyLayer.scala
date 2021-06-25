@@ -22,8 +22,6 @@ object CurrencyLayer {
   final case class CurrencyLayerResponseError(e: Throwable) extends RuntimeException
   final case class CurrencyLayerResponse(
     success: Boolean,
-    terms: String,
-    privacy: String,
     timestamp: Long,
     source: String,
     quotes: Map[String, Double]
