@@ -1,12 +1,16 @@
 package org.whsv26.crate
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp}
 import doobie.util.transactor.Transactor
+import doobie.util.transactor.Transactor.Aux
 import fs2.Stream
+import org.http4s.client.blaze.BlazeClientBuilder
 import org.whsv26.crate.Config.PostgresConfig
+import org.whsv26.crate.Currency.{HUF, RON}
 import scala.concurrent.duration.DurationInt
 import pureconfig._
 import pureconfig.generic.auto._
+import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
   val pgConf: PostgresConfig = ConfigSource
@@ -34,9 +38,20 @@ object Main extends IOApp {
     CrateServer.stream[IO]
   }
 
-  def incomingCurrencyRateStream: Stream[IO, Unit] = {
+  def incomingCurrencyRateStream(implicit xa: Aux[IO, Unit], ce: ConcurrentEffect[IO]): Stream[IO, Int] = {
     Stream
-      .awakeEvery[IO](30.seconds)
-      .map(d => println(s"Ping! ${d.toSeconds}s"))
+      .awakeEvery[IO](1.minute)
+      .evalMap(_ => {
+        BlazeClientBuilder[IO](global).resource.use { client =>
+          val currencyLayerAlg = CurrencyLayer.impl[IO](client, xa)
+          val persisted = for {
+            rates <- currencyLayerAlg.getCurrentRates(List(RON, HUF))
+            persistedQty <- currencyLayerAlg.persistCurrencyRates(rates)
+          } yield persistedQty
+          persisted.handleErrorWith(_ => IO(0))
+        }.to
+      })
+      .evalTap(i => IO(println(i)))
   }
+
 }

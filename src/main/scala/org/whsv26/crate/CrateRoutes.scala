@@ -35,10 +35,10 @@ object CrateRoutes {
     }
   }
 
-  implicit val CsvQueryParamDecoder: QueryParamDecoder[Seq[Currency]]
-    = (value: QueryParameterValue) => Valid(value.value.split(',').toIndexedSeq.map(Currency.withName))
+  implicit val CsvQueryParamDecoder: QueryParamDecoder[List[Currency]]
+    = (value: QueryParameterValue) => Valid(value.value.split(',').toIndexedSeq.toList.map(Currency.withName))
 
-  object CsvQueryParamMatcher extends QueryParamDecoderMatcher[Seq[Currency]]("currencies")
+  object CsvQueryParamMatcher extends QueryParamDecoderMatcher[List[Currency]]("currencies")
 
   def getCurrencyLayerRatesRoute[F[_]: Sync](CL: CurrencyLayer[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
@@ -47,7 +47,7 @@ object CrateRoutes {
     HttpRoutes.of[F] {
       case GET -> Root / "currency-layer" / "rates" :? CsvQueryParamMatcher(currencies) =>
         for {
-          currencyRates <- CL.getRates(currencies)
+          currencyRates <- CL.getCurrentRates(currencies)
           resp <- Ok(currencyRates)
         } yield resp
     }

@@ -1,7 +1,6 @@
 package org.whsv26.crate
 
 import enumeratum._
-
 import scala.collection.immutable.IndexedSeq
 
 sealed trait Currency extends EnumEntry

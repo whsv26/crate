@@ -8,7 +8,6 @@ import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
-
 import scala.concurrent.ExecutionContext.global
 
 object CrateServer {
@@ -19,7 +18,7 @@ object CrateServer {
 
       // Implementations
       currencyRateAlg = CurrencyRates.impl[F](xa)
-      currencyLayerAlg = CurrencyLayer.impl[F](client)
+      currencyLayerAlg = CurrencyLayer.impl[F](client, xa)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you

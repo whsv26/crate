@@ -9,7 +9,8 @@ import org.http4s.circe._
 import org.whsv26.crate.Currency.RUB
 import doobie._
 import doobie.implicits._
-import java.time.OffsetDateTime
+import org.whsv26.crate.Syntax._
+import java.time.Instant
 
 trait CurrencyRates[F[_]]{
   def get: F[CurrencyRates.CurrencyRate]
@@ -19,7 +20,7 @@ trait CurrencyRates[F[_]]{
 object CurrencyRates {
   def apply[F[_]](implicit ev: CurrencyRates[F]): CurrencyRates[F] = ev
 
-  final case class CurrencyRate(currency: Currency, rate: Double, actualAt: String)
+  final case class CurrencyRate(currency: Currency, rate: Double, actualAt: Instant)
   final case class CurrencyRateError(e: Throwable) extends RuntimeException
 
   object CurrencyRate {
@@ -35,14 +36,14 @@ object CurrencyRates {
 
     // Doobie Read/Write
     implicit val currencyRateRead: Read[CurrencyRate] =
-      Read[(String, Double, String)].map { case (c, r, aa) => CurrencyRate(Currency.withName(c), r, aa) }
+      Read[(String, Double, String)].map { case (c, r, aa) => CurrencyRate(Currency.withName(c), r, Instant.parse(aa)) }
     implicit val currencyRateWrite: Write[CurrencyRate] =
-      Write[(String, Double, String)].contramap(p => (p.currency.toString, p.rate, p.actualAt))
+      Write[(String, Double, String)].contramap(p => (p.currency.toString, p.rate, p.actualAt.toTimeStampString))
   }
 
   def impl[F[_]: Sync](xa: Transactor.Aux[F, Unit]): CurrencyRates[F] = new CurrencyRates[F]{
     def get: F[CurrencyRate] = {
-      CurrencyRate(RUB, 75.01, OffsetDateTime.now().toString).pure[F]
+      CurrencyRate(RUB, 75.01, Instant.now()).pure[F]
     }
     def getAll: F[List[CurrencyRate]] = {
       sql"SELECT currency, rate, actual_at FROM currency_rates"
