@@ -2,7 +2,7 @@ package org.whsv26.crate
 
 import cats.effect.{ConcurrentEffect, Timer}
 import cats.implicits._
-import doobie.util.transactor.Transactor.Aux
+import doobie.util.transactor.Transactor
 import fs2.Stream
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.implicits._
@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.global
 
 object CrateServer {
 
-  def stream[F[_]: ConcurrentEffect](implicit T: Timer[F], xa: Aux[F, Unit]): Stream[F, Nothing] = {
+  def stream[F[_]: ConcurrentEffect](implicit T: Timer[F], xa: Transactor.Aux[F, Unit]): Stream[F, Nothing] = {
     for {
       client <- BlazeClientBuilder[F](global).stream
 

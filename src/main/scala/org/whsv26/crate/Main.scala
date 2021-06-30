@@ -2,7 +2,6 @@ package org.whsv26.crate
 
 import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp}
 import doobie.util.transactor.Transactor
-import doobie.util.transactor.Transactor.Aux
 import fs2.Stream
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.whsv26.crate.Config.PostgresConfig
@@ -38,7 +37,7 @@ object Main extends IOApp {
     CrateServer.stream[IO]
   }
 
-  def incomingCurrencyRateStream(implicit xa: Aux[IO, Unit], ce: ConcurrentEffect[IO]): Stream[IO, Int] = {
+  def incomingCurrencyRateStream(implicit xa: Transactor.Aux[IO, Unit], ce: ConcurrentEffect[IO]): Stream[IO, Int] = {
     Stream
       .awakeEvery[IO](1.minute)
       .evalMap(_ => {

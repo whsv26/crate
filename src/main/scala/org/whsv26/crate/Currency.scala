@@ -172,6 +172,5 @@ case object Currency extends CirceEnum[Currency] with Enum[Currency] {
   case object CLF extends Currency
   case object USN extends Currency
 
-
   val values: IndexedSeq[Currency] = findValues
 }
