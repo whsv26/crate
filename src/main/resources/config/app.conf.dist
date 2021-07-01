@@ -1,0 +1,10 @@
+db {
+    host = "localhost"
+    port = 54325
+    user = "docker"
+    password = "docker"
+    database = "crate"
+}
+api-layer {
+    uri = "https://apilayer.net"
+}

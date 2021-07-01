@@ -4,19 +4,18 @@ import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp}
 import doobie.util.transactor.Transactor
 import fs2.Stream
 import org.http4s.client.blaze.BlazeClientBuilder
-import org.whsv26.crate.Config.PostgresConfig
+import org.whsv26.crate.Config.{AppConfig, PostgresConfig}
 import org.whsv26.crate.Currency.{HUF, RON}
+
 import scala.concurrent.duration.DurationInt
 import pureconfig._
 import pureconfig.generic.auto._
 import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
-  val pgConf: PostgresConfig = ConfigSource
-    .resources("config/database.conf")
-    .load[PostgresConfig]
-    .toOption
-    .get
+  val appConf: AppConfig =
+    ConfigSource.resources("config/app.conf").load[AppConfig].toOption.get
+  val pgConf: PostgresConfig = appConf.db
 
   implicit val xa: Transactor.Aux[IO, Unit] = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver",
