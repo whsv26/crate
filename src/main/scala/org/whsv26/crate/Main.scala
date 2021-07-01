@@ -8,7 +8,7 @@ import org.whsv26.crate.Config.{AppConfig, PostgresConfig}
 import scala.concurrent.duration.DurationInt
 import pureconfig._
 import pureconfig.generic.auto._
-
+import java.util.{Calendar, TimeZone}
 import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
@@ -37,7 +37,13 @@ object Main extends IOApp {
 
   def incomingCurrencyRateStream(implicit xa: Transactor.Aux[IO, Unit], ce: ConcurrentEffect[IO]): Stream[IO, Int] = {
     Stream
-      .awakeEvery[IO](1.minute)
+      .awakeEvery[IO](1.hour)
+      .filter { _ =>
+        val now = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        val hourOfDay = now.get(Calendar.HOUR_OF_DAY)
+
+        hourOfDay == 2 || hourOfDay == 3
+      }
       .evalMap(_ => {
         BlazeClientBuilder[IO](global).resource.use { client =>
           val currencyLayerService = CurrencyLayerService.impl[IO](client, appConf)
@@ -51,5 +57,4 @@ object Main extends IOApp {
       })
       .evalTap(i => IO(println(i)))
   }
-
 }
