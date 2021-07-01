@@ -5,6 +5,7 @@ db {
     password = "docker"
     database = "crate"
 }
-api-layer {
+currency-layer {
     uri = "https://apilayer.net"
+    token = ""
 }

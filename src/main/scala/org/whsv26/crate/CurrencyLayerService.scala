@@ -42,10 +42,10 @@ object CurrencyLayerService {
       val dsl = new Http4sClientDsl[F] {}
       import dsl._
 
-      val uri = Uri.fromString(conf.apiLayer.uri).toOption.get
+      val uri = Uri.fromString(conf.currencyLayer.uri).toOption.get
       val endpoint = uri / "api" / "live"
       val query = endpoint.withQueryParams(Map(
-        "access_key" -> "",
+        "access_key" -> conf.currencyLayer.token,
         "source" -> "USD",
         "format" -> "1",
         "currencies" -> cs.foldLeft("")(_ + "," + _)
