@@ -5,11 +5,12 @@ import cats.implicits._
 import io.circe._
 import io.circe.generic.semiauto._
 import org.http4s._
-import org.http4s.implicits._
 import org.http4s.circe._
 import org.http4s.Method.GET
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
+import org.whsv26.crate.Config.AppConfig
+
 import java.time.Instant
 
 trait CurrencyLayerService[F[_]] {
@@ -36,21 +37,21 @@ object CurrencyLayerService {
     implicit def currencyLayerResponseEntityDecoder[F[_] : Sync]: EntityDecoder[F, CurrencyLayerResponse] = jsonOf
   }
 
-  def impl[F[_] : Sync](C: Client[F]): CurrencyLayerService[F] = new CurrencyLayerService[F] {
+  def impl[F[_] : Sync](C: Client[F], conf: AppConfig): CurrencyLayerService[F] = new CurrencyLayerService[F] {
     def getLiveRates(cs: List[Currency]): F[List[CurrencyRate]] = {
       val dsl = new Http4sClientDsl[F] {}
       import dsl._
 
-      // TODO Drop mock server
-      val baseUri = uri"https://14c373a2-f86b-49a6-ae99-fe4a4dcecc23.mock.pstmn.io" / "api" / "live"
-      val uri = baseUri.withQueryParams(Map(
+      val uri = Uri.fromString(conf.apiLayer.uri).toOption.get
+      val endpoint = uri / "api" / "live"
+      val query = endpoint.withQueryParams(Map(
         "access_key" -> "",
         "source" -> "USD",
         "format" -> "1",
         "currencies" -> cs.foldLeft("")(_ + "," + _)
       ))
 
-      C.expect[CurrencyLayerResponse](GET(uri))
+      C.expect[CurrencyLayerResponse](GET(query))
         .adaptError { case e => CurrencyLayerResponseError(e) }
         .map(rsp => {
           val quotes = rsp.quotes map { case (c, r) => (c.replace(rsp.source, ""), r) }
