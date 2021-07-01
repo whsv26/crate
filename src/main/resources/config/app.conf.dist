@@ -1,3 +1,6 @@
+api {
+    access-key=""
+}
 db {
     host = "localhost"
     port = 54325

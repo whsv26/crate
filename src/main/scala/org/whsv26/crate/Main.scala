@@ -33,7 +33,7 @@ object Main extends IOApp {
   }
 
   def outgoingCurrencyRateStream: Stream[IO, Nothing] = {
-    CrateServer.stream[IO]
+    CrateServer.stream[IO](appConf)
   }
 
   def incomingCurrencyRateStream(implicit xa: Transactor.Aux[IO, Unit], ce: ConcurrentEffect[IO]): Stream[IO, Int] = {
