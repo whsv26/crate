@@ -173,4 +173,5 @@ case object Currency extends CirceEnum[Currency] with Enum[Currency] {
   case object USN extends Currency
 
   val values: IndexedSeq[Currency] = findValues
+  val set: Set[String] = values.map(_.toString).toSet
 }

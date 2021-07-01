@@ -2,9 +2,6 @@ package org.whsv26.crate
 
 import cats.effect.Sync
 import cats.implicits._
-import doobie._
-import doobie.implicits._
-import doobie.util.update.Update
 import io.circe._
 import io.circe.generic.semiauto._
 import org.http4s._
@@ -13,17 +10,17 @@ import org.http4s.circe._
 import org.http4s.Method.GET
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
-import org.whsv26.crate.CurrencyRates.CurrencyRate
 import java.time.Instant
 
-trait CurrencyLayer[F[_]] {
-  def getCurrentRates(cs: List[Currency]): F[List[CurrencyRate]]
-
-  def persistCurrencyRates(rates: List[CurrencyRate]): F[Int]
+trait CurrencyLayerService[F[_]] {
+  /**
+    * Get the most recent exchange rate data
+    */
+  def getLiveRates(cs: List[Currency]): F[List[CurrencyRate]]
 }
 
-object CurrencyLayer {
-  def apply[F[_]](implicit ev: CurrencyRates[F]): CurrencyRates[F] = ev
+object CurrencyLayerService {
+  def apply[F[_]](implicit ev: CurrencyRateRepository[F]): CurrencyRateRepository[F] = ev
 
   final case class CurrencyLayerResponseError(e: Throwable) extends RuntimeException
 
@@ -39,8 +36,8 @@ object CurrencyLayer {
     implicit def currencyLayerResponseEntityDecoder[F[_] : Sync]: EntityDecoder[F, CurrencyLayerResponse] = jsonOf
   }
 
-  def impl[F[_] : Sync](C: Client[F], xa: Transactor.Aux[F, Unit]): CurrencyLayer[F] = new CurrencyLayer[F] {
-    def getCurrentRates(cs: List[Currency]): F[List[CurrencyRate]] = {
+  def impl[F[_] : Sync](C: Client[F]): CurrencyLayerService[F] = new CurrencyLayerService[F] {
+    def getLiveRates(cs: List[Currency]): F[List[CurrencyRate]] = {
       val dsl = new Http4sClientDsl[F] {}
       import dsl._
 
@@ -65,13 +62,6 @@ object CurrencyLayer {
             )
           }
         })
-    }
-
-    def persistCurrencyRates(rates: List[CurrencyRate]): F[Int] = {
-      val sql = "INSERT INTO currency_rates (currency, rate, actual_at) values (?, ?, ?::TIMESTAMP)"
-      Update[CurrencyRate](sql)
-        .updateMany(rates)
-        .transact(xa)
     }
   }
 }

@@ -1,53 +1,34 @@
 package org.whsv26.crate
 
-import cats.data.Validated.Valid
+import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.implicits._
-import org.http4s.{HttpRoutes, QueryParamDecoder, QueryParameterValue}
+import org.http4s.{HttpRoutes, ParseFailure, QueryParamDecoder, QueryParameterValue}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.io.QueryParamDecoderMatcher
 
 object CrateRoutes {
+  implicit val csvQueryParamDecoder: QueryParamDecoder[NonEmptyList[Currency]] = (value: QueryParameterValue) => {
+    val list = value
+      .value
+      .split(',')
+      .toList
+      .filter(Currency.set)
+      .map(Currency.withName)
 
-  def getCurrencyRateRoute[F[_]: Sync](CR: CurrencyRates[F]): HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F]{}
-    import dsl._
-
-    HttpRoutes.of[F] {
-      case GET -> Root / "currency" / "rate" =>
-        for {
-          currencyRate <- CR.get
-          resp <- Ok(currencyRate)
-        } yield resp
-    }
+    NonEmptyList.fromList(list).toValidNel(ParseFailure("at least one currency required", ""))
   }
 
-  def getCurrencyRatesRoute[F[_]: Sync](CR: CurrencyRates[F]): HttpRoutes[F] = {
+  object CsvQueryParamMatcher extends QueryParamDecoderMatcher[NonEmptyList[Currency]]("currencies")
+
+  def getLiveCurrencyRates[F[_]: Sync](repo: CurrencyRateRepository[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
     import dsl._
 
     HttpRoutes.of[F] {
-      case GET -> Root / "currency" / "rates" =>
+      case GET -> Root / "api" / "live" :? CsvQueryParamMatcher(currencies) =>
         for {
-          currencyRates <- CR.getAll
-          resp <- Ok(currencyRates)
-        } yield resp
-    }
-  }
-
-  implicit val CsvQueryParamDecoder: QueryParamDecoder[List[Currency]]
-    = (value: QueryParameterValue) => Valid(value.value.split(',').toIndexedSeq.toList.map(Currency.withName))
-
-  object CsvQueryParamMatcher extends QueryParamDecoderMatcher[List[Currency]]("currencies")
-
-  def getCurrencyLayerRatesRoute[F[_]: Sync](CL: CurrencyLayer[F]): HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F]{}
-    import dsl._
-
-    HttpRoutes.of[F] {
-      case GET -> Root / "currency-layer" / "rates" :? CsvQueryParamMatcher(currencies) =>
-        for {
-          currencyRates <- CL.getCurrentRates(currencies)
+          currencyRates <- repo.findByCurrencies(currencies)
           resp <- Ok(currencyRates)
         } yield resp
     }

@@ -42,10 +42,11 @@ object Main extends IOApp {
       .awakeEvery[IO](1.minute)
       .evalMap(_ => {
         BlazeClientBuilder[IO](global).resource.use { client =>
-          val currencyLayerAlg = CurrencyLayer.impl[IO](client, xa)
+          val currencyLayerService = CurrencyLayerService.impl[IO](client)
+          val currencyRateRepository = CurrencyRateRepository.impl[IO](xa)
           val persisted = for {
-            rates <- currencyLayerAlg.getCurrentRates(List(RON, HUF))
-            persistedQty <- currencyLayerAlg.persistCurrencyRates(rates)
+            rates <- currencyLayerService.getLiveRates(List(RON, HUF)) // TODO add full list of currencies
+            persistedQty <- currencyRateRepository.insertMany(rates)
           } yield persistedQty
           persisted.handleErrorWith(_ => IO(0))
         }.to
