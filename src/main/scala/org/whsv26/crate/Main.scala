@@ -5,11 +5,10 @@ import doobie.util.transactor.Transactor
 import fs2.Stream
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.whsv26.crate.Config.{AppConfig, PostgresConfig}
-import org.whsv26.crate.Currency.{HUF, RON}
-
 import scala.concurrent.duration.DurationInt
 import pureconfig._
 import pureconfig.generic.auto._
+
 import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
@@ -44,7 +43,7 @@ object Main extends IOApp {
           val currencyLayerService = CurrencyLayerService.impl[IO](client, appConf)
           val currencyRateRepository = CurrencyRateRepository.impl[IO](xa)
           val persisted = for {
-            rates <- currencyLayerService.getLiveRates(List(RON, HUF)) // TODO add full list of currencies
+            rates <- currencyLayerService.getLiveRates(Currency.nel)
             persistedQty <- currencyRateRepository.insertMany(rates)
           } yield persistedQty
           persisted.handleErrorWith(_ => IO(0))

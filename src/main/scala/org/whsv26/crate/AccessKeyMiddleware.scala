@@ -6,8 +6,6 @@ import org.http4s.{HttpRoutes, Response}
 import org.http4s.Status.Forbidden
 import org.whsv26.crate.Config.AppConfig
 
-// Request[F] => OptionT[F, Response[F]]
-
 object AccessKeyMiddleware {
   def apply[F[_]: Applicative](route: HttpRoutes[F], conf: AppConfig): HttpRoutes[F] = Kleisli { request =>
     val matchesOpt = for {

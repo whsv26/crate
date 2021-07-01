@@ -9,6 +9,6 @@ db {
     database = "crate"
 }
 currency-layer {
-    uri = "https://apilayer.net"
+    uri = "http://api.currencylayer.com"
     token = ""
 }

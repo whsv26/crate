@@ -1,5 +1,6 @@
 package org.whsv26.crate
 
+import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.implicits._
 import io.circe._
@@ -10,14 +11,13 @@ import org.http4s.Method.GET
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.whsv26.crate.Config.AppConfig
-
 import java.time.Instant
 
 trait CurrencyLayerService[F[_]] {
   /**
     * Get the most recent exchange rate data
     */
-  def getLiveRates(cs: List[Currency]): F[List[CurrencyRate]]
+  def getLiveRates(cs: NonEmptyList[Currency]): F[List[CurrencyRate]]
 }
 
 object CurrencyLayerService {
@@ -38,7 +38,7 @@ object CurrencyLayerService {
   }
 
   def impl[F[_] : Sync](C: Client[F], conf: AppConfig): CurrencyLayerService[F] = new CurrencyLayerService[F] {
-    def getLiveRates(cs: List[Currency]): F[List[CurrencyRate]] = {
+    def getLiveRates(cs: NonEmptyList[Currency]): F[List[CurrencyRate]] = {
       val dsl = new Http4sClientDsl[F] {}
       import dsl._
 
@@ -54,7 +54,7 @@ object CurrencyLayerService {
       C.expect[CurrencyLayerResponse](GET(query))
         .adaptError { case e => CurrencyLayerResponseError(e) }
         .map(rsp => {
-          val quotes = rsp.quotes map { case (c, r) => (c.replace(rsp.source, ""), r) }
+          val quotes = rsp.quotes map { case (c, r) => (c.substring(3), r) }
           quotes.toList map {
             case (currency, rate) => CurrencyRate(
               Currency.withName(currency),
