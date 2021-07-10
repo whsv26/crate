@@ -12,16 +12,16 @@ import java.util.{Calendar, TimeZone}
 import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
-  val appConf: AppConfig =
-    ConfigSource.resources("config/app.conf").load[AppConfig].toOption.get
-  val pgConf: PostgresConfig = appConf.db
+  val appConf: AppConfig = ConfigSource.resources("config/app.conf").load[AppConfig].toOption.get
 
-  implicit val xa: Transactor.Aux[IO, Unit] = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver",
-    s"jdbc:postgresql://${pgConf.host}:${pgConf.port}/${pgConf.database}",
-    pgConf.user,
-    pgConf.password
-  )
+  implicit val xa: Transactor.Aux[IO, Unit] = appConf.db match {
+    case PostgresConfig(host, port, user, password, database) => Transactor.fromDriverManager[IO](
+      "org.postgresql.Driver",
+      s"jdbc:postgresql://$host:$port/$database",
+      user,
+      password
+    )
+  }
 
   def run(args: List[String]): IO[ExitCode] = {
     outgoingCurrencyRateStream
@@ -40,9 +40,8 @@ object Main extends IOApp {
       .awakeEvery[IO](1.hour)
       .filter { _ =>
         val now = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        val hourOfDay = now.get(Calendar.HOUR_OF_DAY)
-
-        hourOfDay == 2 || hourOfDay == 3
+        val dueHours = List(2, 3)
+        dueHours.contains(now.get(Calendar.HOUR_OF_DAY))
       }
       .evalMap(_ => {
         BlazeClientBuilder[IO](global).resource.use { client =>
