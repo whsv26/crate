@@ -1,5 +1,9 @@
 api {
-    access-key=""
+    access-key = ""
+}
+server {
+    host = "localhost"
+    port = 8080
 }
 db {
     host = "localhost"

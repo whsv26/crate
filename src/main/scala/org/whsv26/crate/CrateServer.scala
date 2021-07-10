@@ -30,7 +30,7 @@ object CrateServer {
 
     for {
       exitCode <- BlazeServerBuilder[F](global)
-        .bindHttp(8080, "localhost")
+        .bindHttp(conf.server.port, conf.server.host)
         .withHttpApp(finalHttpApp)
         .serve
     } yield exitCode
