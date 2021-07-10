@@ -1,3 +1,9 @@
+docker-build:
+	sbt docker
+
+docker-build-and-push:
+	sbt dockerBuildAndPush
+
 up:
 	docker-compose up -d
 
