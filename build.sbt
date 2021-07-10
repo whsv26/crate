@@ -12,7 +12,7 @@ lazy val root = (project in file("."))
   .settings(
     organization := "org.whsv26",
     name := "crate",
-    version := "0.0.1-SNAPSHOT",
+    version := "0.0.1",
     scalaVersion := "2.13.6",
     libraryDependencies ++= Seq(
       "org.http4s"      %% "http4s-blaze-server" % Http4sVersion,
@@ -44,14 +44,36 @@ lazy val root = (project in file("."))
       "org.tpolecat" %% "doobie-scalatest" % doobieVersion % "test"  // ScalaTest support for typechecking statements.
     ),
 
-//    libraryDependencies ++= Seq(
-//      "com.softwaremill.macwire" %% "macros" % macWireVersion % "provided",
-//      "com.softwaremill.macwire" %% "macrosakka" % macWireVersion % "provided",
-//      "com.softwaremill.macwire" %% "util" % macWireVersion,
-//      "com.softwaremill.macwire" %% "proxy" % macWireVersion,
-//    ),
-
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1"),
     testFrameworks += new TestFramework("munit.Framework")
   )
+
+
+enablePlugins(DockerPlugin)
+
+docker / imageNames := Seq(
+  // Sets the latest tag
+  ImageName(s"whsv26/${name.value}:latest"),
+
+  // Sets a name with a tag that contains the project version
+  ImageName(
+    namespace = Some("whsv26"),
+    repository = name.value,
+    tag = Some("v" + version.value)
+  )
+)
+
+docker / dockerfile := {
+  // The assembly task generates a fat JAR file
+  val artifact: File = assembly.value
+  val artifactTargetPath = s"/app/${artifact.name}"
+
+  new Dockerfile {
+    from("openjdk:8-jre")
+    add(artifact, artifactTargetPath)
+    entryPoint("java", "-jar", artifactTargetPath)
+  }
+}
+
+docker / buildOptions := BuildOptions(cache = false)
