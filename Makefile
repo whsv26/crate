@@ -1,3 +1,5 @@
+rebuild: down docker-build up
+
 docker-build:
 	sbt docker
 

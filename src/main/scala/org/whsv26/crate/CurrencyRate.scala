@@ -2,10 +2,11 @@ package org.whsv26.crate
 
 import cats.effect.Sync
 import doobie.{Read, Write}
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, Json}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.http4s.{EntityDecoder, EntityEncoder}
 import org.http4s.circe.{jsonEncoderOf, jsonOf}
+import io.circe.syntax._
 import java.time.Instant
 import Syntax._
 
@@ -19,7 +20,9 @@ object CurrencyRate {
   implicit val currencyRateEncoder: Encoder[CurrencyRate] = deriveEncoder[CurrencyRate]
   implicit def currencyRateEntityEncoder[F[_]]: EntityEncoder[F, CurrencyRate] = jsonEncoderOf
 
+  implicit def currencyRateSeqEncoder[T: Encoder](lst: Seq[T]): Json = lst.asJson
   implicit val currencyRateListEncoder: Encoder[List[CurrencyRate]] = deriveEncoder[List[CurrencyRate]]
+  implicit def currencyRateSeqEntityEncoder[F[_]]: EntityEncoder[F, Seq[CurrencyRate]] = jsonEncoderOf
   implicit def currencyRateListEntityEncoder[F[_]]: EntityEncoder[F, List[CurrencyRate]] = jsonEncoderOf
 
   // Doobie Read/Write

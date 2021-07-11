@@ -8,7 +8,7 @@ import doobie.implicits._
 import doobie.util.update.Update
 
 trait CurrencyRateRepository[F[_]]{
-  def findByCurrencies(cs: NonEmptyList[Currency]): F[List[CurrencyRate]]
+  def findByCurrencies(cs: NonEmptyList[Currency]): F[Seq[CurrencyRate]]
   def insertMany(rates: List[CurrencyRate]): F[Int]
 }
 
@@ -16,7 +16,7 @@ object CurrencyRateRepository {
   def apply[F[_]](implicit ev: CurrencyRateRepository[F]): CurrencyRateRepository[F] = ev
 
   def impl[F[_]: Sync](xa: Transactor.Aux[F, Unit]): CurrencyRateRepository[F] = new CurrencyRateRepository[F]{
-    def findByCurrencies(cs: NonEmptyList[Currency]): F[List[CurrencyRate]] = {
+    def findByCurrencies(cs: NonEmptyList[Currency]): F[Seq[CurrencyRate]] = {
       val currValuesFr = cs.map(_.toString).map(n => fr"($n)").intercalate(fr",")
       val cteFr = fr"WITH currencies(currency) AS (VALUES " ++ currValuesFr ++ fr")"
       val queryFr = cteFr ++ fr"""
@@ -34,7 +34,7 @@ object CurrencyRateRepository {
       queryFr.query[CurrencyRate]
         .stream
         .compile
-        .toList
+        .to(Seq)
         .transact(xa)
     }
 
