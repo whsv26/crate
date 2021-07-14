@@ -2,14 +2,14 @@ api {
     access-key = ""
 }
 server {
-    host = "localhost"
-    port = 8080
+    host = "0.0.0.0"
+    port = 80
 }
 db {
-    host = "localhost"
-    port = 54325
-    user = "docker"
-    password = "docker"
+    host = "postgres"
+    port = 5432
+    user = ""
+    password = ""
     database = "crate"
 }
 currency-layer {

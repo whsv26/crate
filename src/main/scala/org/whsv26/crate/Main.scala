@@ -40,7 +40,7 @@ object Main extends IOApp {
       .awakeEvery[IO](1.hour)
       .filter { _ =>
         val now = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        val dueHours = List(2, 3)
+        val dueHours = List(2, 3, 11, 12)
         dueHours.contains(now.get(Calendar.HOUR_OF_DAY))
       }
       .evalMap(_ => {
