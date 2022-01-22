@@ -8,25 +8,28 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.io.QueryParamDecoderMatcher
 
 object CrateRoutes {
-  implicit val csvCurrencyQueryParamDecoder: QueryParamDecoder[NonEmptyList[Currency]] = (value: QueryParameterValue) => {
-    val list = value
+  implicit val decoder: QueryParamDecoder[NonEmptyList[Currency]] =
+    (_: QueryParameterValue)
       .value
       .split(',')
       .toList
       .filter(Currency.set)
       .map(Currency.withName)
+      .toNel
+      .toValidNel(ParseFailure("At least one currency required", ""))
 
-    NonEmptyList.fromList(list).toValidNel(ParseFailure("at least one element must be present", ""))
-  }
+  object Matcher extends
+    QueryParamDecoderMatcher[NonEmptyList[Currency]]("currencies")
 
-  object CurrenciesParamMatcher extends QueryParamDecoderMatcher[NonEmptyList[Currency]]("currencies")
+  def getLiveCurrencyRates[F[_]: Sync](
+    repo: CurrencyRateRepository[F]
+  ): HttpRoutes[F] = {
 
-  def getLiveCurrencyRates[F[_]: Sync](repo: CurrencyRateRepository[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
     import dsl._
 
     HttpRoutes.of[F] {
-      case GET -> Root / "api" / "live" :? CurrenciesParamMatcher(currencies) =>
+      case GET -> Root / "api" / "live" :? Matcher(currencies) =>
         for {
           currencyRates <- repo.findByCurrencies(currencies)
           resp <- Ok(currencyRates)
