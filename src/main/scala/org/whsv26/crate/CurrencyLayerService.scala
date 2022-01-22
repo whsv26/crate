@@ -63,7 +63,7 @@ object CurrencyLayerService {
 
   private object Response {
     implicit def decoder: Decoder[Response] = deriveDecoder[Response]
-    implicit def entityDecoder[F[_] : Sync]: EntityDecoder[F, Response] = jsonOf
+    implicit def entityDecoder[F[_]: Sync]: EntityDecoder[F, Response] = jsonOf
   }
 }
 

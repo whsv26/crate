@@ -6,7 +6,6 @@ val MunitCatsEffectVersion = "0.13.0"
 val enumeratumCirceVersion = "1.6.1"
 val pureConfigVersion = "0.16.0"
 val doobieVersion = "0.12.1"
-val macWireVersion = "2.3.7"
 
 lazy val root = (project in file("."))
   .settings(

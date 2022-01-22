@@ -10,8 +10,8 @@ trait CurrencyRateRepository[F[_]] {
 }
 
 object CurrencyRateRepository {
-  def apply[F[_]: Sync: Transactor]: CurrencyRateRepository[F] =
-    new DoobieCurrencyRateRepository[F](implicitly[Transactor[F]])
+  def apply[F[_]: Sync](xa: Transactor[F]): CurrencyRateRepository[F] =
+    new DoobieCurrencyRateRepository[F](xa)
 }
 
 
