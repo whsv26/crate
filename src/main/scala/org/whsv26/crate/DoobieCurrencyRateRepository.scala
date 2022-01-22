@@ -8,7 +8,7 @@ import doobie.implicits._
 import doobie.util.transactor.Transactor
 import org.whsv26.crate.DoobieCurrencyRateRepository.{findByCurrenciesFragment, insertManyFragment}
 
-class DoobieCurrencyRateRepository[F[_]: Sync](implicit
+class DoobieCurrencyRateRepository[F[_]: Sync](
   xa: Transactor[F]
 ) extends CurrencyRateRepository[F] {
 
