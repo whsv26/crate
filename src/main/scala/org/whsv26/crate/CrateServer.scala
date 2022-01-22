@@ -16,7 +16,7 @@ object CrateServer {
     xa: Transactor.Aux[F, Unit]
   ): Stream[F, Nothing] = {
 
-    val currencyRateRepository = CurrencyRateRepository.impl[F](xa)
+    val currencyRateRepository = CurrencyRateRepository[F]
 
     def middleware(route: HttpRoutes[F]) =
       AccessKeyMiddleware(route, conf)

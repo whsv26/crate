@@ -19,7 +19,9 @@ object Main extends IOApp {
       .toOption
       .get
 
-  implicit def transactor[F[_]: Async: ContextShift]: Transactor.Aux[F, Unit] =
+  type TransactorAux[F[_]] = Transactor.Aux[F, Unit]
+
+  implicit def transactor[F[_]: Async: ContextShift]: TransactorAux[F] =
     appConf.db match {
       case PostgresConfig(host, port, user, password, database) =>
         Transactor.fromDriverManager[F](
@@ -46,7 +48,7 @@ object Main extends IOApp {
   }
 
   private def incomingCurrencyRateStream[F[_]: ConcurrentEffect: Timer](implicit
-    xa: Transactor.Aux[F, Unit]
+    xa: TransactorAux[F]
   ): Stream[F, Int] = {
 
     Stream.awakeEvery[F](1.hour)
@@ -58,7 +60,7 @@ object Main extends IOApp {
       .evalMap { _ =>
         BlazeClientBuilder[F](global).resource.use { client =>
           val currencyLayerService = CurrencyLayerService.impl[F](client, appConf)
-          val currencyRateRepository = CurrencyRateRepository.impl[F](xa)
+          val currencyRateRepository = CurrencyRateRepository[F]
 
           val persisted = for {
             rates <- currencyLayerService.getLiveRates(Currency.nel)
