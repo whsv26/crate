@@ -21,50 +21,67 @@ trait CurrencyLayerService[F[_]] {
 }
 
 object CurrencyLayerService {
-  def apply[F[_]](implicit ev: CurrencyRateRepository[F]): CurrencyRateRepository[F] = ev
+
+  def apply[F[_]](implicit
+    ev: CurrencyRateRepository[F]
+  ): CurrencyRateRepository[F] = ev
 
   final case class CurrencyLayerResponseError(e: Throwable) extends RuntimeException
 
-  final case class CurrencyLayerResponse(success: Boolean,
-                                         timestamp: Long,
-                                         source: String,
-                                         quotes: Map[String, Double])
+  final case class CurrencyLayerResponse(
+    success: Boolean,
+    timestamp: Long,
+    source: String,
+    quotes: Map[String, Double]
+  )
 
   object CurrencyLayerResponse {
-    // Circe Encoder/Decoder
-    implicit val currencyLayerResponseDecoder: Decoder[CurrencyLayerResponse] = deriveDecoder[CurrencyLayerResponse]
 
-    implicit def currencyLayerResponseEntityDecoder[F[_] : Sync]: EntityDecoder[F, CurrencyLayerResponse] = jsonOf
+    // Circe Encoder/Decoder
+    implicit def decoder: Decoder[CurrencyLayerResponse] =
+      deriveDecoder[CurrencyLayerResponse]
+
+    type CED[F[_]] = EntityDecoder[F, CurrencyLayerResponse]
+
+    implicit def entityDecoder[F[_] : Sync]: CED[F] = jsonOf
   }
 
-  def impl[F[_] : Sync](C: Client[F], conf: AppConfig): CurrencyLayerService[F] = new CurrencyLayerService[F] {
-    def getLiveRates(cs: NonEmptyList[Currency]): F[List[CurrencyRate]] = {
-      val dsl = new Http4sClientDsl[F] {}
-      import dsl._
+  def impl[F[_] : Sync](
+    client: Client[F],
+    conf: AppConfig
+  ): CurrencyLayerService[F] = new CurrencyLayerService[F] {
 
-      val uri = Uri.fromString(conf.currencyLayer.uri).toOption.get
-      val endpoint = uri / "api" / "live"
-      val query = endpoint.withQueryParams(Map(
-        "access_key" -> conf.currencyLayer.token,
-        "source" -> "USD",
-        "format" -> "1",
-        "currencies" -> cs.foldLeft("")(_ + "," + _)
-      ))
+      def getLiveRates(cs: NonEmptyList[Currency]): F[List[CurrencyRate]] = {
+        val dsl = new Http4sClientDsl[F] { }
+        import dsl._
 
-      C.expect[CurrencyLayerResponse](GET(query))
-        .adaptError { case e => CurrencyLayerResponseError(e) }
-        .map(rsp => {
-          val quotes = rsp.quotes map { case (c, r) => (c.substring(3), r) }
-          quotes.toList map {
+        val uri = Uri.fromString(conf.currencyLayer.uri).toOption.get
+        val endpoint = uri / "api" / "live"
+
+        val query = endpoint.withQueryParams(Map(
+          "access_key" -> conf.currencyLayer.token,
+          "source" -> "USD",
+          "format" -> "1",
+          "currencies" -> cs.foldLeft("")(_ + "," + _)
+        ))
+
+        client.expect[CurrencyLayerResponse](GET(query))
+          .adaptError { case e => CurrencyLayerResponseError(e) }
+          .map(adaptResponse)
+      }
+
+      private def adaptResponse(rsp: CurrencyLayerResponse) =
+        rsp.quotes
+          .map { case (c, r) => (c.substring(3), r) }
+          .toList
+          .map {
             case (currency, rate) => CurrencyRate(
               Currency.withName(currency),
               rate,
               Instant.ofEpochSecond(rsp.timestamp)
             )
           }
-        })
     }
-  }
 }
 
 

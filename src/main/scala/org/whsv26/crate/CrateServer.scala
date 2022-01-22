@@ -13,9 +13,14 @@ import scala.concurrent.ExecutionContext.global
 
 object CrateServer {
 
-  def stream[F[_]: ConcurrentEffect](conf: AppConfig)(implicit T: Timer[F], xa: Transactor.Aux[F, Unit]): Stream[F, Nothing] = {
+  def stream[F[_]: ConcurrentEffect: Timer](conf: AppConfig)(implicit
+    xa: Transactor.Aux[F, Unit]
+  ): Stream[F, Nothing] = {
+
     val currencyRateRepository = CurrencyRateRepository.impl[F](xa)
-    def middleware(r: HttpRoutes[F]) = AccessKeyMiddleware(r, conf)
+
+    def middleware(route: HttpRoutes[F]) =
+      AccessKeyMiddleware(route, conf)
 
     // Combine Service Routes into an HttpApp.
     // Can also be done via a Router if you
@@ -26,7 +31,7 @@ object CrateServer {
     ).orNotFound
 
     // With Middlewares in place
-    val finalHttpApp = Logger.httpApp(true, true)(httpApp)
+    val finalHttpApp = Logger.httpApp(logHeaders = true, logBody = true)(httpApp)
 
     for {
       exitCode <- BlazeServerBuilder[F](global)
@@ -34,5 +39,6 @@ object CrateServer {
         .withHttpApp(finalHttpApp)
         .serve
     } yield exitCode
+
   }.drain
 }

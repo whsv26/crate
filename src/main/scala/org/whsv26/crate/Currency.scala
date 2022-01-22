@@ -5,6 +5,7 @@ import enumeratum._
 import scala.collection.immutable.IndexedSeq
 
 sealed trait Currency extends EnumEntry
+
 case object Currency extends CirceEnum[Currency] with Enum[Currency] {
   case object AED extends Currency
   case object AFN extends Currency
@@ -174,7 +175,7 @@ case object Currency extends CirceEnum[Currency] with Enum[Currency] {
   case object ZMW extends Currency
   case object ZWL extends Currency
 
-  val values: IndexedSeq[Currency] = findValues
-  val nel: NonEmptyList[Currency] = NonEmptyList.fromListUnsafe(values.toList)
-  val set: Set[String] = values.map(_.toString).toSet
+  lazy val values: IndexedSeq[Currency] = findValues
+  lazy val nel: NonEmptyList[Currency] = NonEmptyList.fromListUnsafe(values.toList)
+  lazy val set: Set[String] = values.map(_.toString).toSet
 }
