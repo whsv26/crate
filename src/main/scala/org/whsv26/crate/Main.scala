@@ -37,18 +37,10 @@ object Main extends IOApp {
       .drain
       .as(ExitCode.Success)
 
-  private def outgoingCurrencyRateStream[F[_]](implicit
-    CE: ConcurrentEffect[F],
-    CS: ContextShift[F],
-    T: Timer[F]
-  ): Stream[F, Nothing] = {
+  private def outgoingCurrencyRateStream[F[_]: ConcurrentEffect: ContextShift: Timer] =
     CrateServer.stream[F](appConf)
-  }
 
-  private def incomingCurrencyRateStream[F[_]: ConcurrentEffect: Timer](implicit
-    xa: Transactor[F]
-  ): Stream[F, Int] = {
-
+  private def incomingCurrencyRateStream[F[_]: ConcurrentEffect: Timer: Transactor]: Stream[F, Int] =
     Stream.awakeEvery[F](1.hour)
       .filter { _ =>
         val now = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
@@ -65,9 +57,8 @@ object Main extends IOApp {
             persistedQty <- currencyRateRepository.insertMany(rates)
           } yield persistedQty
 
-          persisted.handleErrorWith(_ => 0.pure[F])
+          persisted.handleError(_ => 0)
         }
       }
       .evalTap(i => { println(i) }.pure[F])
-  }
 }

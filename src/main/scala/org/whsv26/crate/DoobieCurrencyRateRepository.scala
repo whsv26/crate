@@ -27,10 +27,6 @@ class DoobieCurrencyRateRepository[F[_]: Sync](implicit
 }
 
 object DoobieCurrencyRateRepository {
-  def apply[F[_]: Sync: Transactor]: DoobieCurrencyRateRepository[F] = {
-    new DoobieCurrencyRateRepository
-  }
-
   private def findByCurrenciesFragment(cs: NonEmptyList[Currency]) = {
     val valuesFr = cs.map(_.toString)
       .map(n => fr"($n)")
