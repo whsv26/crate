@@ -15,3 +15,4 @@ logs/
 *.dat
 src/main/resources/config/*.conf
 docker-compose.yml
+.bsp

@@ -22,10 +22,6 @@ trait CurrencyLayerService[F[_]] {
 
 object CurrencyLayerService {
 
-  def apply[F[_]](implicit
-    ev: CurrencyRateRepository[F]
-  ): CurrencyRateRepository[F] = ev
-
   final case class CurrencyLayerResponseError(e: Throwable) extends RuntimeException
 
   final case class CurrencyLayerResponse(

@@ -14,10 +14,6 @@ trait CurrencyRateRepository[F[_]]{
 
 object CurrencyRateRepository {
 
-  def apply[F[_]](implicit
-    repo: CurrencyRateRepository[F]
-  ): CurrencyRateRepository[F] = repo
-
   def impl[F[_]: Sync](xa: Transactor.Aux[F, Unit]): CurrencyRateRepository[F] =
     new CurrencyRateRepository[F] {
       def findByCurrencies(cs: NonEmptyList[Currency]): F[Seq[CurrencyRate]] = {
