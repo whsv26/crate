@@ -1,6 +1,6 @@
 package org.whsv26.crate
 
-import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp, Timer}
+import cats.effect.{ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Timer}
 import cats.implicits._
 import doobie.util.transactor.Transactor
 import fs2.Stream
@@ -12,25 +12,38 @@ import pureconfig.generic.auto._
 import java.util.{Calendar, TimeZone}
 import scala.concurrent.ExecutionContext.global
 import cats.data.Reader
+import org.http4s.client.Client
 
 object Main extends IOApp {
-  case class AppContext[F[_]](conf: AppConfig, xa: Transactor[F])
+  case class AppContext[F[_]](
+    conf: AppConfig,
+    xa: Transactor[F],
+    client: Client[F],
+    currencyRates: CurrencyRateRepository[F]
+  )
 
-  private lazy val applicationContext = {
+  private def applicationContext[F[_]: ConcurrentEffect: ContextShift] = {
     val conf: AppConfig =
       ConfigSource.resources("config/app.conf")
         .load[AppConfig]
         .toOption
         .get
 
-    val xa = Transactor.fromDriverManager[IO](
+    val xa = Transactor.fromDriverManager[F](
       "org.postgresql.Driver",
       "jdbc:postgresql://%s:%s/%s".format(conf.db.host, conf.db.port, conf.db.database),
       conf.db.user,
       conf.db.password
     )
 
-    AppContext(conf, xa)
+    BlazeClientBuilder[F](global).resource.map { client =>
+      AppContext(
+        conf = conf,
+        xa = xa,
+        client = client,
+        currencyRates = CurrencyRateRepository[F](xa)
+      )
+    }
   }
 
   def run(args: List[String]): IO[ExitCode] = {
@@ -40,7 +53,9 @@ object Main extends IOApp {
       merged = out.merge(in).compile.drain.as(ExitCode.Success)
     } yield merged
 
-    reader.run(applicationContext)
+    def runReader(ctx: AppContext[IO]): IO[ExitCode] = reader.run(ctx)
+
+    applicationContext[IO].use(runReader)
   }
 
   private def outgoingStream[F[_]: ConcurrentEffect: Timer]: Reader[AppContext[F], Stream[F, Nothing]] =
@@ -56,17 +71,14 @@ object Main extends IOApp {
           dueHours.contains(now.get(Calendar.HOUR_OF_DAY))
         }
         .evalMap { _ =>
-          BlazeClientBuilder[F](global).resource.use { client =>
-            val currencyLayerService = CurrencyRateService[F](client, ctx.conf)
-            val currencyRateRepository = CurrencyRateRepository[F](ctx.xa)
+          val currencyLayerService = CurrencyRateService[F](ctx.client, ctx.conf)
 
-            val persisted = for {
-              rates <- currencyLayerService.getLiveRates(Currency.nel)
-              persistedQty <- currencyRateRepository.insertMany(rates)
-            } yield persistedQty
+          val persisted = for {
+            rates <- currencyLayerService.getLiveRates(Currency.nel)
+            persistedQty <- ctx.currencyRates.insertMany(rates)
+          } yield persistedQty
 
-            persisted.handleError(_ => 0)
-          }
+          persisted.handleError(_ => 0)
         }
         .evalTap(i => { println(i) }.pure[F])
     }
