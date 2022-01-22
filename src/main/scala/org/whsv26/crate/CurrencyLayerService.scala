@@ -36,8 +36,6 @@ object CurrencyLayerService {
   )
 
   object CurrencyLayerResponse {
-
-    // Circe Encoder/Decoder
     implicit def decoder: Decoder[CurrencyLayerResponse] =
       deriveDecoder[CurrencyLayerResponse]
 
@@ -46,11 +44,8 @@ object CurrencyLayerService {
     implicit def entityDecoder[F[_] : Sync]: CED[F] = jsonOf
   }
 
-  def impl[F[_] : Sync](
-    client: Client[F],
-    conf: AppConfig
-  ): CurrencyLayerService[F] = new CurrencyLayerService[F] {
-
+  def impl[F[_] : Sync](client: Client[F], conf: AppConfig): CurrencyLayerService[F] =
+    new CurrencyLayerService[F] {
       def getLiveRates(cs: NonEmptyList[Currency]): F[List[CurrencyRate]] = {
         val dsl = new Http4sClientDsl[F] { }
         import dsl._

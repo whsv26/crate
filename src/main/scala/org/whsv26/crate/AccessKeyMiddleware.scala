@@ -11,6 +11,7 @@ object AccessKeyMiddleware {
     route: HttpRoutes[F],
     conf: AppConfig
   ): HttpRoutes[F] = {
+
     Kleisli { request =>
       val response = for {
         accessKey <- request.params.get("access_key")

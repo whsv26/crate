@@ -1,6 +1,7 @@
 package org.whsv26.crate
 
-import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp}
+import cats.effect.{Async, ConcurrentEffect, ExitCode, IO, IOApp, Timer, ContextShift}
+import cats.implicits._
 import doobie.util.transactor.Transactor
 import fs2.Stream
 import org.http4s.client.blaze.BlazeClientBuilder
@@ -12,48 +13,61 @@ import java.util.{Calendar, TimeZone}
 import scala.concurrent.ExecutionContext.global
 
 object Main extends IOApp {
-  val appConf: AppConfig = ConfigSource.resources("config/app.conf").load[AppConfig].toOption.get
+  val appConf: AppConfig =
+    ConfigSource.resources("config/app.conf")
+      .load[AppConfig]
+      .toOption
+      .get
 
-  implicit val xa: Transactor.Aux[IO, Unit] = appConf.db match {
-    case PostgresConfig(host, port, user, password, database) => Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver",
-      s"jdbc:postgresql://$host:$port/$database",
-      user,
-      password
-    )
-  }
+  implicit def transactor[F[_]: Async: ContextShift]: Transactor.Aux[F, Unit] =
+    appConf.db match {
+      case PostgresConfig(host, port, user, password, database) =>
+        Transactor.fromDriverManager[F](
+          "org.postgresql.Driver",
+          s"jdbc:postgresql://$host:$port/$database",
+          user,
+          password
+        )
+    }
 
-  def run(args: List[String]): IO[ExitCode] = {
-    outgoingCurrencyRateStream
-      .merge(incomingCurrencyRateStream)
+  def run(args: List[String]): IO[ExitCode] =
+    outgoingCurrencyRateStream[IO]
+      .merge(incomingCurrencyRateStream[IO])
       .compile
       .drain
       .as(ExitCode.Success)
+
+  private def outgoingCurrencyRateStream[F[_]](implicit
+    CE: ConcurrentEffect[F],
+    CS: ContextShift[F],
+    T: Timer[F]
+  ): Stream[F, Nothing] = {
+    CrateServer.stream[F](appConf)
   }
 
-  def outgoingCurrencyRateStream: Stream[IO, Nothing] = {
-    CrateServer.stream[IO](appConf)
-  }
+  private def incomingCurrencyRateStream[F[_]: ConcurrentEffect: Timer](implicit
+    xa: Transactor.Aux[F, Unit]
+  ): Stream[F, Int] = {
 
-  def incomingCurrencyRateStream(implicit xa: Transactor.Aux[IO, Unit], ce: ConcurrentEffect[IO]): Stream[IO, Int] = {
-    Stream
-      .awakeEvery[IO](1.hour)
+    Stream.awakeEvery[F](1.hour)
       .filter { _ =>
         val now = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
         val dueHours = List(2, 3, 11, 12)
         dueHours.contains(now.get(Calendar.HOUR_OF_DAY))
       }
-      .evalMap(_ => {
-        BlazeClientBuilder[IO](global).resource.use { client =>
-          val currencyLayerService = CurrencyLayerService.impl[IO](client, appConf)
-          val currencyRateRepository = CurrencyRateRepository.impl[IO](xa)
+      .evalMap { _ =>
+        BlazeClientBuilder[F](global).resource.use { client =>
+          val currencyLayerService = CurrencyLayerService.impl[F](client, appConf)
+          val currencyRateRepository = CurrencyRateRepository.impl[F](xa)
+
           val persisted = for {
             rates <- currencyLayerService.getLiveRates(Currency.nel)
             persistedQty <- currencyRateRepository.insertMany(rates)
           } yield persistedQty
-          persisted.handleErrorWith(_ => IO(0))
-        }.to
-      })
-      .evalTap(i => IO(println(i)))
+
+          persisted.handleErrorWith(_ => 0.pure[F])
+        }
+      }
+      .evalTap(i => { println(i) }.pure[F])
   }
 }
