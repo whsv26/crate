@@ -2,7 +2,7 @@ package org.whsv26.crate
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
-import org.whsv26.crate.Main.TransactorAux
+import doobie.util.transactor.Transactor
 
 trait CurrencyRateRepository[F[_]] {
   def findByCurrencies(cs: NonEmptyList[Currency]): F[Seq[CurrencyRate]]
@@ -10,7 +10,7 @@ trait CurrencyRateRepository[F[_]] {
 }
 
 object CurrencyRateRepository {
-  def apply[F[_]: Sync: TransactorAux]: CurrencyRateRepository[F] =
+  def apply[F[_]: Sync: Transactor]: CurrencyRateRepository[F] =
     DoobieCurrencyRateRepository[F]
 }
 

@@ -19,9 +19,7 @@ object Main extends IOApp {
       .toOption
       .get
 
-  type TransactorAux[F[_]] = Transactor.Aux[F, Unit]
-
-  implicit def transactor[F[_]: Async: ContextShift]: TransactorAux[F] =
+  implicit def transactor[F[_]: Async: ContextShift]: Transactor[F] =
     appConf.db match {
       case PostgresConfig(host, port, user, password, database) =>
         Transactor.fromDriverManager[F](
@@ -48,7 +46,7 @@ object Main extends IOApp {
   }
 
   private def incomingCurrencyRateStream[F[_]: ConcurrentEffect: Timer](implicit
-    xa: TransactorAux[F]
+    xa: Transactor[F]
   ): Stream[F, Int] = {
 
     Stream.awakeEvery[F](1.hour)

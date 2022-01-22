@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext.global
 object CrateServer {
 
   def stream[F[_]: ConcurrentEffect: Timer](conf: AppConfig)(implicit
-    xa: Transactor.Aux[F, Unit]
+    xa: Transactor[F]
   ): Stream[F, Nothing] = {
 
     val currencyRateRepository = CurrencyRateRepository[F]

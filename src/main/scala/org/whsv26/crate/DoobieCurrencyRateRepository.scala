@@ -5,11 +5,11 @@ import doobie.util.update.Update
 import cats.effect.Sync
 import cats.implicits.toFoldableOps
 import doobie.implicits._
+import doobie.util.transactor.Transactor
 import org.whsv26.crate.DoobieCurrencyRateRepository.{findByCurrenciesFragment, insertManyFragment}
-import org.whsv26.crate.Main.TransactorAux
 
 class DoobieCurrencyRateRepository[F[_]: Sync](implicit
-  xa: TransactorAux[F]
+  xa: Transactor[F]
 ) extends CurrencyRateRepository[F] {
 
   def findByCurrencies(cs: NonEmptyList[Currency]): F[Seq[CurrencyRate]] =
@@ -27,7 +27,7 @@ class DoobieCurrencyRateRepository[F[_]: Sync](implicit
 }
 
 object DoobieCurrencyRateRepository {
-  def apply[F[_]: Sync: TransactorAux]: DoobieCurrencyRateRepository[F] = {
+  def apply[F[_]: Sync: Transactor]: DoobieCurrencyRateRepository[F] = {
     new DoobieCurrencyRateRepository
   }
 
