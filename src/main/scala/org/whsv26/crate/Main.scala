@@ -49,7 +49,7 @@ object Main extends IOApp {
       }
       .evalMap { _ =>
         BlazeClientBuilder[F](global).resource.use { client =>
-          val currencyLayerService = CurrencyLayerService.impl[F](client, appConf)
+          val currencyLayerService = CurrencyRateService[F](client, appConf)
           val currencyRateRepository = CurrencyRateRepository[F]
 
           val persisted = for {
