@@ -6,8 +6,6 @@ import org.http4s.HttpRoutes
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.Logger
-import org.whsv26.crate.Main.AppContext
-
 import scala.concurrent.ExecutionContext.global
 
 object CrateServer {
