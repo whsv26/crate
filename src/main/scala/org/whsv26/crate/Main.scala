@@ -8,6 +8,8 @@ import java.util.{Calendar, TimeZone}
 import cats.data.Reader
 
 object Main extends IOApp {
+  type AppStream[F[_], V] = Reader[AppContext[F], Stream[F, V]]
+
   def run(args: List[String]): IO[ExitCode] = {
     val reader = for {
       out <- outgoingStream[IO]
@@ -20,10 +22,10 @@ object Main extends IOApp {
     AppContext[IO].use(runReader)
   }
 
-  private def outgoingStream[F[_]: ConcurrentEffect: Timer]: Reader[AppContext[F], Stream[F, Nothing]] =
+  private def outgoingStream[F[_]: ConcurrentEffect: Timer]: AppStream[F, Nothing] =
     Reader { CrateServer.stream[F](_) }
 
-  private def incomingStream[F[_]: ConcurrentEffect: Timer]: Reader[AppContext[F], Stream[F, Int]] =
+  private def incomingStream[F[_]: ConcurrentEffect: Timer]: AppStream[F, Int] =
     Reader { ctx =>
       Stream
         .awakeEvery[F](1.hour)
