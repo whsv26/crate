@@ -23,7 +23,8 @@ services:
   flyway:
     container_name: flyway_crate
     image: flyway/flyway:7.10.0
-    command: -url=jdbc:postgresql://postgres:5432/crate -user= -password= migrate
+    entrypoint: flyway -user=docker -password=docker -url=jdbc:postgresql://postgres:5432/crate
+    command: migrate
     depends_on:
       - postgres
     volumes:

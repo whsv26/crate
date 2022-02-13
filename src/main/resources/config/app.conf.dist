@@ -8,8 +8,8 @@ server {
 db {
     host = "postgres"
     port = 5432
-    user = ""
-    password = ""
+    user = "docker"
+    password = "docker"
     database = "crate"
 }
 currency-layer {
