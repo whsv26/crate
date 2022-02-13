@@ -4,7 +4,7 @@ services:
     container_name: server_crate
     image: whsv26/crate:latest
     ports:
-      - 8080:8080
+      - 8081:8080
 
   postgres:
     container_name: postgres_crate

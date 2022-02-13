@@ -1,0 +1,4 @@
+### Get live rates
+GET {{url}}/live?currencies=RUB&access_key={{accessKey}}
+Accept: application/json
+
