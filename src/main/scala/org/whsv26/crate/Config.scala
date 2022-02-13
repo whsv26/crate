@@ -1,7 +1,7 @@
 package org.whsv26.crate
 
 object Config {
-  final case class ApiConfig(accessKey: String)
+  final case class ApiConfig(token: String)
   final case class ServerConfig(host: String, port: Int)
   final case class CurrencyLayerConfig(uri: String, token: String)
 

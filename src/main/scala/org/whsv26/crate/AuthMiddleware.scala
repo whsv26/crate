@@ -4,9 +4,10 @@ import cats._
 import cats.data.{Kleisli, OptionT}
 import org.http4s.{HttpRoutes, Response}
 import org.http4s.Status.Forbidden
+import org.http4s.headers.Authorization
 import org.whsv26.crate.Config.AppConfig
 
-object AccessKeyMiddleware {
+object AuthMiddleware {
   def apply[F[_]: Applicative](
     route: HttpRoutes[F],
     conf: AppConfig
@@ -14,8 +15,9 @@ object AccessKeyMiddleware {
 
     Kleisli { request =>
       val response = for {
-        accessKey <- request.params.get("access_key")
-        _ <- Option.when(accessKey == conf.api.accessKey)(true)
+        header <- request.headers.get(Authorization)
+        token <- header.value.split(' ').lastOption
+        _ <- Option.when(token == conf.api.token)(true)
       } yield route(request)
 
       response.getOrElse(OptionT.pure[F](Response[F](Forbidden)))
